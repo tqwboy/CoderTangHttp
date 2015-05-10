@@ -1,5 +1,6 @@
 package com.tang.http;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -115,40 +116,67 @@ public class HttpManager {
 	// //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * HTTP POST 异步上传字节类型数据，该方法返回POST进度
+	 * 异步上传文字数据
+	 * @param url 网络地址
+	 * @param dataType 要上传的数据的类型
+	 * @param postString 要上传的字符串
+	 * @param readCacheSize 数据读取缓存缓存区长度，单位字节
+	 * @param responseCallback 回调
+	 */
+	public void syncPostStringByHttp(String url, MediaType dataType, String postString, int readCacheSize,
+			HttpPostResponseCallback responseCallback) {
+		
+		RequestBody requestBody = RequestBody.create(dataType, postString);
+		this.syncPostDataByHttp(url, requestBody, readCacheSize, responseCallback);
+	}
+	
+	/**
+	 * 异步上传文件
 	 * 
 	 * @param url 网络地址
-	 * @param data 要上传的数据
-	 * @param writeCacheSize 数据POST缓存
-	 * @param readCacheSize 数据读取缓存
-	 * @param postCallback 回调
+	 * @param dataType 要上传的数据的类型
+	 * @param file 文件对象
+	 * @param readCacheSize 数据读取缓存缓存区长度，单位字节
+	 * @param responseCallback 回调
 	 */
-	public void syncPostBytesByHttp(String url, MediaType dataType, byte[] data,
-			int writeCacheSize, int readCacheSize,
+	public void syncPostFileByHttp(String url, MediaType dataType, File file, int readCacheSize,
+			HttpPostResponseCallback responseCallback) {
+		
+		RequestBody requestBody = RequestBody.create(dataType, file);
+		this.syncPostDataByHttp(url, requestBody, readCacheSize, responseCallback);
+	}
+	
+	/**
+	 * HTTP POST 异步上传字节类型数据，该方法在回调中返回POST进度
+	 * 
+	 * @param url 网络地址
+	 * @param dataType 要上传的数据的类型
+	 * @param data 要上传的数据
+	 * @param readCacheSize 数据读取缓存缓存区长度，单位字节
+	 * @param responseCallback 回调
+	 */
+	public void syncPostBytesByHttp(String url, MediaType dataType, byte[] data, int readCacheSize,
 			HttpPostResponseCallback responseCallback) {
 
-		RequestBody requestBody = new PostCallback(url, dataType, data, responseCallback);
-		Request request = httpPostRequest(url, requestBody);
-		Call call = mClient.newCall(request);
-		mHttpCallMap.put(url, call);
-		call.enqueue(new ResponseCallback(url, readCacheSize, responseCallback));
+		RequestBody requestBody = new PostRequestBody(url, dataType, data, responseCallback);
+		this.syncPostDataByHttp(url, requestBody, readCacheSize, responseCallback);
 	}
 
 	/**
 	 * HTTP POST 异步上传数据
 	 * 
 	 * @param url 网络地址
-	 * @param requestBody 要上传的数据
+	 * @param requestBody POST数据体对象
 	 * @param cacheSize 缓存
 	 * @param postCallback 回调
 	 */
 	public void syncPostDataByHttp(String url, RequestBody requestBody,
-			int readCacheSize, HttpPostResponseCallback postCallback) {
+			int readCacheSize, HttpPostResponseCallback responseCallback) {
 
 		Request request = httpPostRequest(url, requestBody);
 		Call call = mClient.newCall(request);
 		mHttpCallMap.put(url, call);
-		call.enqueue(new ResponseCallback(url, readCacheSize, postCallback));
+		call.enqueue(new ResponseCallback(url, readCacheSize, responseCallback));
 	}
 
 	private Request httpPostRequest(String url, RequestBody requestBody) {
@@ -163,7 +191,7 @@ public class HttpManager {
 	// 回调事件
 	// //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	private class PostCallback extends RequestBody {
+	private class PostRequestBody extends RequestBody {
 		private MediaType mediaType = null;
 		private String url = null;
 		private byte[] data = null;
@@ -171,7 +199,7 @@ public class HttpManager {
 
 		private int writeLen = 8 * 1024;
 
-		public PostCallback(String url, MediaType mediaType, byte[] data,
+		public PostRequestBody(String url, MediaType mediaType, byte[] data,
 				HttpPostResponseCallback postCallback) {
 
 			this.mediaType = mediaType;
