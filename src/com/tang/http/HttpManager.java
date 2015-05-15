@@ -251,7 +251,9 @@ public class HttpManager {
 		public ResponseCallback(String url, int cacheSize, HttpResponseCallback callback) {
 			this.url = url;
 			this.callback = callback;
-			this.cacheSize = cacheSize;
+			
+			if(cacheSize > 0)
+				this.cacheSize = cacheSize;
 		}
 
 		@Override
@@ -275,7 +277,7 @@ public class HttpManager {
 						dataLength = Long.parseLong(dataLengthStr);
 					}
 
-					callback.response(url, response.code(), dataLength);
+					callback.requestSuccess(url, response.code(), dataLength);
 
 					while ((len = inputStream.read(dataCache)) > 0) {
 						callback.responseData(url, dataCache, len);
