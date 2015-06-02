@@ -19,7 +19,7 @@ public class PostMediaType {
 	/** png格式图片 */
 	public static final MediaType MEDIA_TYPE_PNG = MediaType.parse("image/png");
 
-	/** png格式图片 */
+	/** jpeg格式图片 */
 	public static final MediaType MEDIA_TYPE_JPEG = MediaType
 			.parse("image/jpeg");
 }

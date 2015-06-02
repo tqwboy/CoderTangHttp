@@ -123,7 +123,7 @@ public class HttpManager {
 	 * @param readCacheSize 数据读取缓存缓存区长度，单位字节
 	 * @param responseCallback 回调
 	 */
-	public void syncPostStringByHttp(String url, MediaType dataType, String postString, int readCacheSize,
+	public void asyncPostStringByHttp(String url, MediaType dataType, String postString, int readCacheSize,
 			HttpPostResponseCallback responseCallback) {
 		
 		RequestBody requestBody = RequestBody.create(dataType, postString);
@@ -139,7 +139,7 @@ public class HttpManager {
 	 * @param readCacheSize 数据读取缓存缓存区长度，单位字节
 	 * @param responseCallback 回调
 	 */
-	public void syncPostFileByHttp(String url, MediaType dataType, File file, int readCacheSize,
+	public void asyncPostFileByHttp(String url, MediaType dataType, File file, int readCacheSize,
 			HttpPostResponseCallback responseCallback) {
 		
 		RequestBody requestBody = RequestBody.create(dataType, file);
