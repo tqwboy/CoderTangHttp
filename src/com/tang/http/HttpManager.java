@@ -214,21 +214,19 @@ public class HttpManager {
 
 			try {
 				int offset = 0;
-				int count = data.length > writeLen ? data.length : writeLen / 2;
+				int count = data.length < writeLen ? data.length : writeLen;
 				int len = 0;
 
 				while (offset < data.length) {
 					out.write(data, offset, count);
 					len = count;
 
+					postCallback.postData(url, len);
+					out.flush();
+					
 					offset += count;
-					if (offset + count > data.length)
+					if (offset+count > data.length)
 						count = data.length - offset;
-
-					if (offset >= data.length || offset % writeLen == 0) {
-						out.flush();
-						postCallback.postData(url, len);
-					}
 				}
 			}
 			catch (IOException e) {
