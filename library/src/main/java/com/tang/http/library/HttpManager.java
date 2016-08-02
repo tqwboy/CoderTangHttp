@@ -12,6 +12,7 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -50,10 +51,10 @@ public class HttpManager {
 	/**
 	 * 终止HTTP请求
 	 * 
-	 * @param url HTTP URL
+	 * @param requestId 请求
 	 */
-	public void stopHttpRequest(String url) {
-		Call httpCall = mHttpCallMap.remove(url);
+	public void stopHttpRequest(String requestId) {
+		Call httpCall = mHttpCallMap.remove(requestId);
 		if (null != httpCall)
 			httpCall.cancel();
 	}
@@ -68,11 +69,13 @@ public class HttpManager {
 	 * @param url 网络地址
 	 * @param headerValues 表头信息
 	 * @param responseCallback 回调
+	 *
+	 * @return 请求编码，可用来停止请求
 	 */
-	public void asyncGetDataByHttp(String url, HashMap<String, String> headerValues,
+	public String asyncGetDataByHttp(String url, HashMap<String, String> headerValues,
 			HttpResponseCallback responseCallback) {
 
-		this.asyncGetDataByHttp(url, headerValues, 0, responseCallback);
+		return asyncGetDataByHttp(url, headerValues, 0, responseCallback);
 	}
 
 	/**
@@ -82,14 +85,18 @@ public class HttpManager {
 	 * @param headerValues 表头信息
 	 * @param readCacheSize 响应数据缓存区大小，单位：字节
 	 * @param responseCallback 回调
+	 *
+	 * @return 请求编码，可用来停止请求
 	 */
-	public void asyncGetDataByHttp(String url, HashMap<String, String> headerValues,
+	public String asyncGetDataByHttp(String url, HashMap<String, String> headerValues,
 			int readCacheSize, HttpResponseCallback responseCallback) {
 
 		Request request = httpGetRequest(url, headerValues);
 		Call call = mClient.newCall(request);
 		mHttpCallMap.put(url, call);
 		call.enqueue(new ResponseCallback(url, readCacheSize, responseCallback));
+
+		return url;
 	}
 
 	// 创建HTTP请求对象
@@ -124,12 +131,14 @@ public class HttpManager {
 	 * @param postString 要上传的字符串
 	 * @param readCacheSize 数据读取缓存缓存区长度，单位字节
 	 * @param responseCallback 回调
+	 *
+	 * @return 请求编号，用来停止请求
 	 */
-	public void asyncPostStringByHttp(String url, MediaType dataType, String postString, int readCacheSize,
-									  HttpPostResponseCallback responseCallback) {
+	public String asyncPostStringByHttp(String url, MediaType dataType, String postString, int readCacheSize,
+										HttpPostResponseCallback responseCallback) {
 		
 		RequestBody requestBody = RequestBody.create(dataType, postString);
-		this.syncPostDataByHttp(url, requestBody, readCacheSize, responseCallback);
+		return asyncPostDataByHttp(url, requestBody, readCacheSize, responseCallback);
 	}
 	
 	/**
@@ -140,12 +149,14 @@ public class HttpManager {
 	 * @param file 文件对象
 	 * @param readCacheSize 数据读取缓存缓存区长度，单位字节
 	 * @param responseCallback 回调
+	 *
+	 * @return 请求编号，用来停止请求
 	 */
-	public void asyncPostFileByHttp(String url, MediaType dataType, File file, int readCacheSize,
+	public String asyncPostFileByHttp(String url, MediaType dataType, File file, int readCacheSize,
 			HttpPostResponseCallback responseCallback) {
 		
 		RequestBody requestBody = RequestBody.create(dataType, file);
-		this.syncPostDataByHttp(url, requestBody, readCacheSize, responseCallback);
+		return asyncPostDataByHttp(url, requestBody, readCacheSize, responseCallback);
 	}
 	
 	/**
@@ -156,12 +167,15 @@ public class HttpManager {
 	 * @param data 要上传的数据
 	 * @param readCacheSize 数据读取缓存缓存区长度，单位字节
 	 * @param responseCallback 回调
+	 *
+	 * @return 请求编号，用来停止请求
 	 */
-	public void syncPostBytesByHttp(String url, MediaType dataType, byte[] data, int readCacheSize,
+	public String asyncPostBytesByHttp(String url, MediaType dataType, byte[] data, int
+			readCacheSize,
 			HttpPostResponseCallback responseCallback) {
 
 		RequestBody requestBody = new PostRequestBody(url, dataType, data, responseCallback);
-		this.syncPostDataByHttp(url, requestBody, readCacheSize, responseCallback);
+		return asyncPostDataByHttp(url, requestBody, readCacheSize, responseCallback);
 	}
 
 	/**
@@ -169,16 +183,23 @@ public class HttpManager {
 	 * 
 	 * @param url 网络地址
 	 * @param requestBody POST数据体对象
-	 * @param readCacheSize 缓存
+	 * @param readCacheSize 缓存大小
 	 * @param responseCallback 回调
+	 *
+	 * @return 请求编号，用来停止请求
 	 */
-	public void syncPostDataByHttp(String url, RequestBody requestBody,
+	public String asyncPostDataByHttp(String url, RequestBody requestBody,
 			int readCacheSize, HttpPostResponseCallback responseCallback) {
 
 		Request request = httpPostRequest(url, requestBody);
 		Call call = mClient.newCall(request);
-		mHttpCallMap.put(url, call);
+
+		UUID uuid = UUID.randomUUID();
+		String requestCode = uuid.toString();
+		mHttpCallMap.put(requestCode, call);
 		call.enqueue(new ResponseCallback(url, readCacheSize, responseCallback));
+
+		return requestCode;
 	}
 
 	private Request httpPostRequest(String url, RequestBody requestBody) {
@@ -199,7 +220,7 @@ public class HttpManager {
 		private byte[] data = null;
 		private HttpPostResponseCallback postCallback = null;
 
-		private int writeLen = 8 * 1024;
+		private int writeLen = 2 * 1024;
 
 		public PostRequestBody(String url, MediaType mediaType, byte[] data,
 				HttpPostResponseCallback postCallback) {
