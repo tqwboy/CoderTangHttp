@@ -93,10 +93,13 @@ public class HttpManager {
 
 		Request request = httpGetRequest(url, headerValues);
 		Call call = mClient.newCall(request);
-		mHttpCallMap.put(url, call);
+
+		UUID uuid = UUID.randomUUID();
+		String requestCode = uuid.toString();
+		mHttpCallMap.put(requestCode, call);
 		call.enqueue(new ResponseCallback(url, readCacheSize, responseCallback));
 
-		return url;
+		return requestCode;
 	}
 
 	// 创建HTTP请求对象
