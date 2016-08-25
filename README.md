@@ -12,9 +12,9 @@ allprojects {
 }
 ```
 
-然后在app/build.gradle下的dependencies中，添加compile 'com.github.tqwboy:CoderTangHttp:v2.1.2'，例子如下：
+然后在app/build.gradle下的dependencies中，添加compile 'com.github.tqwboy:CoderTangHttp:2.2.0'，例子如下：
 ```c
 dependencies {
-  compile 'com.github.tqwboy:CoderTangHttp:v2.1.2'
+  compile 'com.github.tqwboy:CoderTangHttp:2.2.0'
 }
 ```
