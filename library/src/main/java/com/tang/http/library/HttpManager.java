@@ -97,7 +97,7 @@ public class HttpManager {
 		UUID uuid = UUID.randomUUID();
 		String requestCode = uuid.toString();
 		mHttpCallMap.put(requestCode, call);
-		call.enqueue(new ResponseCallback(url, readCacheSize, responseCallback));
+		call.enqueue(new ResponseCallback(url, requestCode, readCacheSize, responseCallback));
 
 		return requestCode;
 	}
@@ -105,7 +105,7 @@ public class HttpManager {
 	// 创建HTTP请求对象
 	private Request httpGetRequest(String url, HashMap<String, String> headerValues) {
 		Builder requestBuilder = new Builder().url(url).header("User-Agent",
-				USER_AGENT);
+				USER_AGENT).get();
 
 		// 设置表头
 		if (null != headerValues && headerValues.size() > 0) {
@@ -157,7 +157,7 @@ public class HttpManager {
 	 */
 	public String asyncPostFileByHttp(String url, MediaType dataType, File file, int readCacheSize,
 			HttpPostResponseCallback responseCallback) {
-		
+
 		RequestBody requestBody = RequestBody.create(dataType, file);
 		return asyncPostDataByHttp(url, requestBody, readCacheSize, responseCallback);
 	}
@@ -173,9 +173,9 @@ public class HttpManager {
 	 *
 	 * @return 请求编号，用来停止请求
 	 */
-	public String asyncPostBytesByHttp(String url, MediaType dataType, byte[] data, int
-			readCacheSize,
-			HttpPostResponseCallback responseCallback) {
+	public String asyncPostBytesByHttp(String url, MediaType dataType, byte[] data,
+									   int readCacheSize,
+									   HttpPostResponseCallback responseCallback) {
 
 		RequestBody requestBody = new PostRequestBody(url, dataType, data, responseCallback);
 		return asyncPostDataByHttp(url, requestBody, readCacheSize, responseCallback);
@@ -200,15 +200,14 @@ public class HttpManager {
 		UUID uuid = UUID.randomUUID();
 		String requestCode = uuid.toString();
 		mHttpCallMap.put(requestCode, call);
-		call.enqueue(new ResponseCallback(url, readCacheSize, responseCallback));
+		call.enqueue(new ResponseCallback(url, requestCode, readCacheSize, responseCallback));
 
 		return requestCode;
 	}
 
 	private Request httpPostRequest(String url, RequestBody requestBody) {
 		Builder requestBuilder = new Builder().url(url).header("User-Agent",
-				USER_AGENT);
-		requestBuilder = requestBuilder.url(url).post(requestBody);
+				USER_AGENT).post(requestBody);
 
 		return requestBuilder.build();
 	}
@@ -235,28 +234,23 @@ public class HttpManager {
 		}
 
 		@Override
-		public void writeTo(BufferedSink sink) {
+		public void writeTo(BufferedSink sink) throws IOException {
 			OutputStream out = sink.outputStream();
 
-			try {
-				int offset = 0;
-				int count = data.length < writeLen ? data.length : writeLen;
-				int len;
+			int offset = 0;
+			int count = data.length < writeLen ? data.length : writeLen;
+			int len;
 
-				while (offset < data.length) {
-					out.write(data, offset, count);
-					len = count;
+			while (offset < data.length) {
+				out.write(data, offset, count);
+				len = count;
 
-					postCallback.postData(url, len);
-					out.flush();
-					
-					offset += count;
-					if (offset+count > data.length)
-						count = data.length - offset;
-				}
-			}
-			catch (IOException e) {
-				stopHttpRequest(url);
+				postCallback.postData(url, len);
+				out.flush();
+
+				offset += count;
+				if (offset+count > data.length)
+					count = data.length - offset;
 			}
 		}
 
@@ -269,11 +263,14 @@ public class HttpManager {
 	// HTTP连接响应回调
 	private class ResponseCallback implements Callback {
 		private String url = null;
+		private String requestId;
 		private HttpResponseCallback callback;
 		private int cacheSize = 2 * 1024;
 
-		public ResponseCallback(String url, int cacheSize, HttpResponseCallback callback) {
+		public ResponseCallback(String url, String requestId, int cacheSize,
+								HttpResponseCallback callback) {
 			this.url = url;
+			this.requestId = requestId;
 			this.callback = callback;
 			
 			if(cacheSize > 0)
@@ -282,7 +279,7 @@ public class HttpManager {
 
 		@Override
 		public void onFailure(Call call, IOException e) {
-			mHttpCallMap.remove(url);
+			mHttpCallMap.remove(requestId);
 			callback.requestFail(url, ERR_TYPE_IO, 0, e.getMessage());
 		}
 
@@ -320,7 +317,7 @@ public class HttpManager {
 				callback.requestFail(url, ERR_TYPE_IO, response.code(), ex.getMessage());
 			}
 			finally {
-				mHttpCallMap.remove(url);
+				mHttpCallMap.remove(requestId);
 			}
 		}
 	}
